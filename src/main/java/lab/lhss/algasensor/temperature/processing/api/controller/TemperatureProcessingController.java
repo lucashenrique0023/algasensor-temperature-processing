@@ -3,7 +3,9 @@ package lab.lhss.algasensor.temperature.processing.api.controller;
 import io.hypersistence.tsid.TSID;
 import lab.lhss.algasensor.temperature.processing.api.model.TemperatureLogOutput;
 import lab.lhss.algasensor.temperature.processing.common.IdGenerator;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -11,10 +13,15 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
 
+import static lab.lhss.algasensor.temperature.processing.infrastructure.rabbitmq.RabbitMQConfig.FANOUT_EXCHANGE_NAME;
+
 @RestController
 @RequestMapping("/api/sensors/{sensorId}/temperatures/data")
 @Slf4j
+@RequiredArgsConstructor
 public class TemperatureProcessingController {
+
+    private final RabbitTemplate rabbitTemplate;
 
     @PostMapping(consumes = MediaType.TEXT_PLAIN_VALUE)
     public void data(@PathVariable TSID sensorId, @RequestBody String input) {
@@ -39,6 +46,10 @@ public class TemperatureProcessingController {
 
         log.info(logOutput.toString());
 
+        String exchangeName = FANOUT_EXCHANGE_NAME;
+        String routingKey = "";
+
+        rabbitTemplate.convertAndSend(exchangeName, routingKey, logOutput);
     }
 
 }
